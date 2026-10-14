@@ -1,0 +1,357 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>短網址後台改版示意</title>
+<!-- 本檔為離線示意稿：不載入任何外部資源，資料皆為虛構範例 -->
+<style>
+:root{
+  --bg:#f4f6f9; --panel:#fff; --line:#e3e7ee; --text:#1f2933; --sub:#64748b;
+  --brand:#1d6fb8; --brand-weak:#e8f1fb; --warn:#b45309; --warn-weak:#fef3e2;
+  --ok:#15803d; --ok-weak:#e7f6ec; --danger:#b91c1c;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:"Microsoft JhengHei","PingFang TC","Noto Sans TC",sans-serif;background:var(--bg);color:var(--text);font-size:14px}
+button{font:inherit;cursor:pointer}
+.top{height:56px;background:var(--panel);border-bottom:1px solid var(--line);display:flex;align-items:center;gap:16px;padding:0 20px;position:sticky;top:0;z-index:5}
+.logo{font-weight:900;font-size:17px;color:var(--brand);white-space:nowrap}
+.search{flex:1;max-width:620px;position:relative}
+.search input{width:100%;height:38px;border:1px solid var(--line);border-radius:10px;padding:0 14px 0 36px;font:inherit;background:#f8fafc}
+.search span{position:absolute;left:12px;top:9px;color:var(--sub)}
+.btn{height:36px;border-radius:9px;border:1px solid var(--line);background:#fff;padding:0 14px}
+.btn.primary{background:var(--brand);border-color:var(--brand);color:#fff;font-weight:700}
+.btn.sm{height:28px;padding:0 10px;font-size:13px}
+.user{margin-left:auto;color:var(--sub);white-space:nowrap}
+.wrap{display:flex;min-height:calc(100vh - 56px)}
+.side{width:220px;background:var(--panel);border-right:1px solid var(--line);padding:14px 10px;flex:none}
+.side h4{font-size:12px;color:var(--sub);margin:14px 10px 6px;font-weight:700}
+.nav{display:flex;align-items:center;justify-content:space-between;padding:8px 10px;border-radius:8px;color:var(--text);cursor:pointer}
+.nav:hover{background:#f1f5f9}.nav.on{background:var(--brand-weak);color:var(--brand);font-weight:700}
+.badge{font-size:12px;background:#eef2f7;color:var(--sub);border-radius:20px;padding:1px 8px}
+.badge.warn{background:var(--warn-weak);color:var(--warn);font-weight:700}
+.main{flex:1;padding:20px 24px;min-width:0}
+.view{display:none}.view.on{display:block}
+h2{font-size:20px;margin-bottom:4px}.desc{color:var(--sub);margin-bottom:16px}
+.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px}
+.kpi{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px 16px}
+.kpi b{display:block;font-size:22px}.kpi span{color:var(--sub);font-size:13px}
+.kpi.warn{border-color:#f5d6a8;background:var(--warn-weak)}
+.filters{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px;align-items:center}
+.chip{border:1px solid var(--line);background:#fff;border-radius:20px;padding:5px 12px;font-size:13px}
+.chip.on{background:var(--brand);border-color:var(--brand);color:#fff}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:12px;overflow:hidden}
+table{width:100%;border-collapse:collapse}
+th{font-size:12px;color:var(--sub);text-align:left;padding:10px 12px;border-bottom:1px solid var(--line);background:#fafbfd;font-weight:700}
+td{padding:10px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+tr:hover td{background:#fafcff}
+.code{font-family:Consolas,monospace;font-weight:700;color:var(--brand)}
+.copy{margin-left:6px;font-size:12px;border:1px solid var(--line);background:#fff;border-radius:6px;padding:1px 6px;color:var(--sub)}
+.title{font-weight:700}.url{color:var(--sub);font-size:12px;max-width:360px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tag{display:inline-block;font-size:12px;background:#eef2f7;border-radius:6px;padding:1px 7px;margin:2px 4px 0 0}
+.tag.dup{background:var(--warn-weak);color:var(--warn)}
+.num{text-align:right;font-variant-numeric:tabular-nums}
+.acts{display:flex;gap:4px;justify-content:flex-end}
+.ic{width:30px;height:30px;border:1px solid var(--line);background:#fff;border-radius:8px;font-size:13px}
+.batch{display:none;background:var(--text);color:#fff;border-radius:10px;padding:8px 14px;margin-bottom:10px;align-items:center;gap:10px}
+.batch.on{display:flex}.batch .btn{background:#334155;border-color:#334155;color:#fff;height:30px}
+.pager{display:flex;justify-content:space-between;padding:10px 12px;color:var(--sub);font-size:13px}
+/* drawer */
+.mask{position:fixed;inset:0;background:rgba(15,23,42,.35);display:none;z-index:9}
+.mask.on{display:block}
+.drawer{position:fixed;top:0;right:0;height:100vh;width:460px;max-width:100%;background:#fff;z-index:10;transform:translateX(100%);transition:.2s;display:flex;flex-direction:column}
+.drawer.on{transform:none}
+.toast{position:fixed;left:50%;bottom:28px;transform:translateX(-50%);background:#1f2933;color:#fff;padding:10px 18px;border-radius:10px;font-size:14px;z-index:20;opacity:0;transition:.2s;pointer-events:none}
+.toast.on{opacity:1}
+.dh{padding:16px 20px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center}
+.dh b{font-size:17px}
+.db{padding:18px 20px;overflow:auto;flex:1}
+.df{padding:12px 20px;border-top:1px solid var(--line);display:flex;justify-content:flex-end;gap:8px}
+.field{margin-bottom:14px}.field label{display:block;font-weight:700;margin-bottom:5px}
+.field input,.field select{width:100%;height:36px;border:1px solid var(--line);border-radius:8px;padding:0 10px;font:inherit}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.hint{font-size:12px;color:var(--sub);margin-top:4px}
+.alert{border-radius:10px;padding:10px 12px;margin-bottom:14px;font-size:13px;line-height:1.6}
+.alert.warn{background:var(--warn-weak);color:#7c2d12;border:1px solid #f5d6a8}
+.alert.ok{background:var(--ok-weak);color:#14532d;border:1px solid #b7e2c4}
+.preview{display:flex;gap:14px;align-items:center;border:1px dashed var(--line);border-radius:10px;padding:12px}
+.qr{width:96px;height:96px;flex:none;background:
+ repeating-linear-gradient(90deg,#111 0 6px,#fff 6px 12px),repeating-linear-gradient(0deg,#111 0 6px,#fff 6px 12px);background-blend-mode:difference;border:6px solid #fff;outline:1px solid var(--line)}
+.qrcap{font-family:Consolas,monospace;font-weight:700;text-align:center;font-size:12px;margin-top:4px}
+/* dup view */
+.group{background:#fff;border:1px solid var(--line);border-radius:12px;margin-bottom:12px}
+.gh{padding:10px 14px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center}
+.gh .url{max-width:none}
+.gr{display:grid;grid-template-columns:28px 1.2fr 1fr .8fr .6fr 1.2fr;gap:8px;padding:8px 14px;align-items:center;border-bottom:1px solid var(--line)}
+.gr:last-child{border-bottom:0}
+.keep{color:var(--ok);font-weight:700}
+/* stats */
+.bars{display:flex;align-items:flex-end;gap:6px;height:120px;border-bottom:1px solid var(--line);padding:0 4px}
+.bars div{flex:1;background:var(--brand);border-radius:4px 4px 0 0;opacity:.85}
+.split{display:flex;height:14px;border-radius:7px;overflow:hidden;margin:8px 0}
+.split i{display:block}
+.legend{display:flex;gap:14px;font-size:12px;color:var(--sub)}
+.legend b{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:4px;vertical-align:-1px}
+.cards{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.pin{background:#fff;border:1px solid var(--line);border-radius:12px;padding:14px}
+.pin .code{display:block;margin:6px 0}
+.note{margin-top:18px;background:#fff;border:1px solid var(--line);border-left:4px solid var(--brand);border-radius:8px;padding:12px 14px;line-height:1.7;color:#334155}
+.note b{color:var(--text)}
+@media (max-width:900px){.side{display:none}.kpis{grid-template-columns:repeat(2,1fr)}.cards{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="logo">短網址後台</div>
+  <div class="search"><span>⌕</span><input placeholder="搜尋短碼、標題、標籤，或直接貼上原始網址查有沒有建立過…"></div>
+  <button class="btn primary" onclick="openDrawer('create')">＋ 新增短網址</button>
+  <div class="user">管理者 ▾</div>
+</header>
+
+<div class="wrap">
+  <nav class="side">
+    <div class="nav on" data-view="list">全部連結 <span class="badge">24,576</span></div>
+    <div class="nav" data-view="common">通用區 <span class="badge">12</span></div>
+    <div class="nav" data-view="dup">待整理：重複網址 <span class="badge warn">86</span></div>
+    <h4>工具</h4>
+    <div class="nav" data-view="qr">QR 與圖片區</div>
+    <div class="nav" data-view="stats">點擊統計</div>
+    <div class="nav" data-view="rules">命名規則說明</div>
+  </nav>
+
+  <main class="main">
+
+    <!-- ===== 全部連結 ===== -->
+    <section class="view on" id="v-list">
+      <h2>全部連結</h2>
+      <p class="desc">上方搜尋一次找短碼、標題、網址與標籤；貼上原始網址就能查有沒有建立過。</p>
+      <div class="kpis">
+        <div class="kpi"><b>24,576</b><span>連結總數</span></div>
+        <div class="kpi"><b>142</b><span>本月新增</span></div>
+        <div class="kpi"><b>19.4 M</b><span>累計點擊</span></div>
+        <div class="kpi warn"><b>86</b><span>組重複網址待整理 →</span></div>
+      </div>
+      <div class="filters">
+        <button class="chip">產品 ▾</button><button class="chip">用途 ▾</button><button class="chip">建立者 ▾</button><button class="chip">建立日期 ▾</button>
+        <span style="margin-left:auto;color:var(--sub);font-size:13px">排序：建立日期（新→舊）▾</span>
+      </div>
+      <div class="batch" id="batch"><span id="bcount">已選 0 筆</span>
+        <button class="btn">下載 QR（ZIP）</button><button class="btn">加標籤</button><button class="btn">匯出 Excel</button><button class="btn">移到通用區</button>
+      </div>
+      <div class="card">
+        <table>
+          <thead><tr><th style="width:30px"><input type="checkbox" id="all"></th><th>短碼</th><th>標題／原始網址</th><th>標籤</th><th>建立者</th><th>建立日期</th><th class="num">點擊</th><th></th></tr></thead>
+          <tbody id="rows"></tbody>
+        </table>
+        <div class="pager"><span>第 1–8 筆，共 653 筆</span><span>‹ 1 2 3 … 82 ›　每頁 <b>25</b> 筆 ▾</span></div>
+      </div>
+      <div class="note"><b>設計重點：</b>短碼旁直接放「複製」，最常用的動作一鍵完成。標題改成「產品｜科目年級｜用途」，不用再點開看網址。標籤只分產品與用途，科目年級寫在標題，用搜尋就找得到。操作按鈕滑過時會出現文字提示。勾選多筆後才出現批次工具列。建立者 IP 改為建立者帳號。</div>
+    </section>
+
+    <!-- ===== 通用區 ===== -->
+    <section class="view" id="v-common">
+      <h2>通用區</h2>
+      <p class="desc">常用的連結與 QR 集中在這一頁，打開就能複製或下載，不用在兩萬多筆裡搜尋。</p>
+      <div class="cards">
+        <div class="pin"><span class="tag">官網</span><span class="code">demo-home</span><div class="title">官網首頁</div><div class="url">https://example.com/</div><p style="margin-top:10px"><button class="btn sm">複製</button> <button class="btn sm">QR</button></p></div>
+        <div class="pin"><span class="tag">客服</span><span class="code">demo-service</span><div class="title">客服表單</div><div class="url">https://example.com/service</div><p style="margin-top:10px"><button class="btn sm">複製</button> <button class="btn sm">QR</button></p></div>
+        <div class="pin"><span class="tag">下載</span><span class="code">app-dl</span><div class="title">App 下載頁</div><div class="url">https://example.com/app</div><p style="margin-top:10px"><button class="btn sm">複製</button> <button class="btn sm">QR</button></p></div>
+        <div class="pin"><span class="tag">常用</span><span class="code">ma3-home</span><div class="title">示範產品｜入口首頁</div><div class="url">https://example.com/ma3/index.html</div><p style="margin-top:10px"><button class="btn sm">複製</button> <button class="btn sm">QR</button></p></div>
+        <div class="pin"><span class="tag">常用</span><span class="code">eb-guide</span><div class="title">電子書｜使用說明</div><div class="url">https://example.com/ebook/guide</div><p style="margin-top:10px"><button class="btn sm">複製</button> <button class="btn sm">QR</button></p></div>
+        <div class="pin" style="border-style:dashed;display:flex;align-items:center;justify-content:center;color:var(--sub)">＋ 從列表勾選後「移到通用區」</div>
+      </div>
+      <div class="note"><b>統整常用項目：</b>通用區放哪些連結由管理者預設好，大家直接取用；之後有新的常用連結，從列表勾選後「移到通用區」即可。</div>
+    </section>
+
+    <!-- ===== 重複整理 ===== -->
+    <section class="view" id="v-dup">
+      <h2>待整理：重複網址</h2>
+      <p class="desc">同一個原始網址有多個短碼。已印在書上或教材裡的短碼不能刪，所以處理方式是「指定一個主要短碼」，其他標成別名，照樣能用。</p>
+      <div id="groups"></div>
+      <div class="note"><b>之後不再產生重複：</b>新增時一貼上網址，系統就先比對。若已存在，會直接顯示舊短碼並建議沿用，真的需要新短碼（例如不同印刷品要分開統計點擊）才另外建立。</div>
+    </section>
+
+    <!-- ===== QR 與圖片區 ===== -->
+    <section class="view" id="v-qr">
+      <h2>QR 與圖片區</h2>
+      <p class="desc">QR 一律在自家伺服器產生，不呼叫外部服務，避免網址外流。</p>
+      <div class="card" style="padding:18px;display:grid;grid-template-columns:1fr 1fr;gap:24px">
+        <div>
+          <div class="field"><label>中央 Logo</label><select id="qlogo" onchange="drawQR()"><option value="logo">公司 Logo</option><option value="none">不加</option></select><div class="hint">加 Logo 時系統自動調高密度，確保仍掃得到。</div></div>
+          <div class="field"><label>點的樣式</label><select id="qdot" onchange="drawQR()"><option value="round">圓點</option><option value="square">方點</option></select></div>
+          <div class="field"><label>密度</label><select id="qden" onchange="drawQR()"><option value="h">高（加 Logo、印刷品）</option><option value="m">標準（一般使用）</option></select><div class="hint">密度越高越耐髒污、加 Logo 也掃得到，但點會比較密。</div></div>
+          <div class="field"><label>格式</label><select><option>PNG（一般使用）</option><option>SVG（印刷用，放大不糊）</option></select></div>
+          <button class="btn primary">下載</button>
+        </div>
+        <div>
+          <div style="font-weight:700;margin-bottom:8px">預覽</div>
+          <div class="preview" style="justify-content:center"><div><svg id="qrsvg" width="220" height="220" viewBox="0 0 29 29"></svg><div class="qrcap">s.example/ma3-m6a-eb</div></div></div>
+          <div class="hint" style="margin-top:10px">只留最常調的四個選項，其他都用預設值。列表勾選多筆後可批次下載（ZIP）。</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== 點擊統計 ===== -->
+    <section class="view" id="v-stats">
+      <h2>點擊統計：ma3-m6a-eb</h2>
+      <p class="desc">示範產品｜數學六上｜電子書</p>
+      <div class="kpis">
+        <div class="kpi"><b>1,284</b><span>累計點擊</span></div>
+        <div class="kpi"><b>212</b><span>近 30 天</span></div>
+        <div class="kpi"><b>68%</b><span>來自 QR 掃描</span></div>
+        <div class="kpi"><b>週二</b><span>點擊最多的日子</span></div>
+      </div>
+      <div class="card" style="padding:18px">
+        <div style="font-weight:700;margin-bottom:10px">近 12 週點擊</div>
+        <div class="bars"><div style="height:30%"></div><div style="height:42%"></div><div style="height:38%"></div><div style="height:55%"></div><div style="height:61%"></div><div style="height:48%"></div><div style="height:70%"></div><div style="height:88%"></div><div style="height:76%"></div><div style="height:64%"></div><div style="height:59%"></div><div style="height:66%"></div></div>
+        <div style="font-weight:700;margin:18px 0 0">資料收集點（來源）</div>
+        <div class="split"><i style="width:68%;background:var(--brand)"></i><i style="width:22%;background:#7fb1e0"></i><i style="width:10%;background:#cbd5e1"></i></div>
+        <div class="legend"><span><b style="background:var(--brand)"></b>QR 掃描 68%</span><span><b style="background:#7fb1e0"></b>網頁連結 22%</span><span><b style="background:#cbd5e1"></b>其他 10%</span></div>
+      </div>
+      <div class="note"><b>怎麼分出來源：</b>同一個短碼，QR 印的是「短碼?src=qr」，網頁上用原本的短碼，系統就能分開計算。<b>個資：</b>點擊者 IP 只用於統計，不在畫面上顯示完整 IP，紀錄保留期限依公司規定設定。</div>
+    </section>
+
+    <!-- ===== 命名規則 ===== -->
+    <section class="view" id="v-rules">
+      <h2>命名規則說明</h2>
+      <p class="desc">新增時由下拉選單自動組出短碼，不用自己想。</p>
+      <div class="card"><table>
+        <thead><tr><th>欄位</th><th>代碼</th><th>範例</th></tr></thead>
+        <tbody>
+          <tr><td>產品</td><td>ma3 示範產品、eb 電子書、vd 影音</td><td class="code">ma3</td></tr>
+          <tr><td>科目＋年級＋冊次</td><td>c 國語、m 數學、s 自然、o 社會；1–6 年級；a 上、b 下</td><td class="code">m6a</td></tr>
+          <tr><td>用途</td><td>eb 電子書、vd 影片、tl 工具、ac 活動</td><td class="code">eb</td></tr>
+          <tr><td>流水號（同組重複時才加）</td><td>01、02…</td><td class="code">ma3-m6a-eb-02</td></tr>
+        </tbody></table></div>
+      <div class="note"><b>舊短碼不改：</b>已經印出去的短碼（如 cdm、wordpie05）全部保留，只補上標題與標籤，讓它搜得到。規則只套用在新建立的連結。</div>
+    </section>
+  </main>
+</div>
+
+<!-- ===== 新增抽屜 ===== -->
+<div class="mask" id="mask" onclick="closeDrawer()"></div>
+<aside class="drawer" id="d-create">
+  <div class="dh"><b>新增短網址</b><button class="btn sm" onclick="closeDrawer()">✕</button></div>
+  <div class="db">
+    <div class="field"><label>1. 原始網址</label><input id="u" value="https://example.com/ma3/ebook.html#m6a" oninput="check()"></div>
+    <div id="dupAlert" class="alert warn">⚠ 這個網址已經建立過了！已有短碼 <b class="code">ma3-m6a-eb</b>（點擊 1,284 次）。<br>建議直接沿用：<button class="btn sm">複製舊短碼</button>　或 <a href="#" onclick="document.getElementById('dupAlert').style.display='none';return false">仍要新建（例如分開統計不同印刷品）</a></div>
+    <div class="field"><label>2. 分類</label>
+      <div class="grid2">
+        <select onchange="mk()" id="p"><option value="ma3">示範產品</option><option value="eb">電子書</option><option value="vd">影音</option></select>
+        <select onchange="mk()" id="t"><option value="eb">電子書</option><option value="vd">影片</option><option value="tl">工具</option><option value="ac">活動</option></select>
+      </div>
+      <input id="sg" value="數學六上" oninput="mk()" style="margin-top:10px" placeholder="科目年級（例：數學六上、國文七上）">
+      <div class="hint">產品、用途用選的；科目年級直接打字，不另外分類。</div></div>
+    <div class="field"><label>3. 短碼與標題（自動產生，可修改）</label>
+      <input id="code" class="code" style="margin-bottom:8px"><input id="ttl">
+      <div class="hint">標題格式：產品｜科目年級｜用途</div></div>
+    <div class="field"><label>4. 預覽</label>
+      <div class="preview"><div><svg class="qrmini" width="96" height="96" viewBox="0 0 29 29"></svg><div class="qrcap" id="cap"></div></div>
+      <div style="font-size:13px;color:var(--sub);line-height:1.7">建立後可直接：<br>・複製短網址<br>・下載 QR（可加中央 Logo）<br>・加入通用區</div></div></div>
+  </div>
+  <div class="df"><button class="btn" onclick="closeDrawer()">取消</button><button class="btn primary">建立</button></div>
+</aside>
+
+<script>
+// 虛構範例資料（非實際資料）
+const rows = [
+  ['ma3-m6a-eb','示範產品｜數學六上｜電子書','https://example.com/ma3/ebook.html#m6a',['示範產品','電子書'],'王小明','2026-09-21',1284,false],
+  ['ma3-m6a-vd','示範產品｜數學六上｜影片','https://example.com/ma3/video.html#m6a',['示範產品','影片'],'王小明','2026-09-18',830,false],
+  ['cfn','（舊短碼，待補標題）','https://example.com/ma3/ebook.html#m6a',['重複'],'—','2026-09-21',0,true],
+  ['ma3-c5a-eb','示範產品｜國語五上｜電子書','https://example.com/ma3/ebook.html#c5a',['示範產品','電子書'],'林美華','2026-09-08',412,false],
+  ['ma3-s6a-tl','示範產品｜自然六上｜工具','https://example.com/ma3/tools.html#s6a',['示範產品','工具'],'林美華','2026-08-28',65,false],
+  ['wordpie05','示範產品｜國語｜字詞卡 05','https://example.com/ma3/accordion.html#05',['示範產品','舊短碼'],'—','2026-07-27',100,false],
+  ['wordpie07','示範產品｜國語｜字詞卡 07','https://example.com/ma3/accordion.html#07',['示範產品','舊短碼'],'—','2026-06-29',84,false],
+  ['eb-guide','電子書｜使用說明','https://example.com/ebook/guide',['電子書','通用區'],'陳志強','2026-06-22',2210,false],
+];
+const tb = document.getElementById('rows');
+tb.innerHTML = rows.map(r => `<tr>
+  <td><input type="checkbox" class="ck"></td>
+  <td><span class="code">${r[0]}</span><button class="copy" title="複製短網址">複製</button></td>
+  <td><div class="title">${r[1]}</div><div class="url" title="${r[2]}">${r[2]}</div></td>
+  <td>${r[3].map(t=>`<span class="tag ${t==='重複'?'dup':''}">${t}</span>`).join('')}</td>
+  <td>${r[4]}</td><td>${r[5]}</td><td class="num">${r[6].toLocaleString()}</td>
+  <td><div class="acts"><button class="ic" title="QR code">▦</button><button class="ic" title="點擊統計" onclick="go('stats')">▥</button><button class="ic" title="編輯">✎</button><button class="ic" title="更多">⋯</button></div></td></tr>`).join('');
+
+const batch = document.getElementById('batch');
+function upd(){const n=[...document.querySelectorAll('.ck')].filter(c=>c.checked).length;
+  batch.classList.toggle('on',n>0);document.getElementById('bcount').textContent='已選 '+n+' 筆';}
+document.querySelectorAll('.ck').forEach(c=>c.onchange=upd);
+document.getElementById('all').onchange=e=>{document.querySelectorAll('.ck').forEach(c=>c.checked=e.target.checked);upd();};
+
+// 重複群組
+const groups = [
+  {url:'https://example.com/ma3/ebook.html#m6a',items:[['ma3-m6a-eb',1284,'2026-09-21',true],['cfn',0,'2026-09-21',false],['ccr',0,'2026-08-18',false]]},
+  {url:'https://example.com/ma3/index.html',items:[['cd6',72,'2026-08-25',true],['ma3-home',3410,'2025-02-11',false]]},
+];
+document.getElementById('groups').innerHTML = groups.map(g=>`<div class="group">
+  <div class="gh"><div><div class="url">${g.url}</div><span class="tag dup">${g.items.length} 個短碼指向同一網址</span></div><button class="btn sm primary">確認整理</button></div>
+  ${g.items.map((it,i)=>`<div class="gr"><input type="radio" name="${g.url}" ${it[3]?'checked':''}><span class="code">${it[0]}</span><span>點擊 ${it[1].toLocaleString()}</span><span>${it[2]}</span><span>${it[3]?'<span class="keep">主要</span>':'別名'}</span><span class="hint">${it[3]?'搜尋與統計以此為主':'仍可正常轉址，不刪除'}</span></div>`).join('')}
+</div>`).join('');
+
+// 側欄切換
+function go(v){document.querySelectorAll('.view').forEach(x=>x.classList.toggle('on',x.id==='v-'+v));
+  document.querySelectorAll('.nav').forEach(x=>x.classList.toggle('on',x.dataset.view===v));}
+document.querySelectorAll('.nav').forEach(n=>n.onclick=()=>{document.querySelectorAll('.nav').forEach(x=>x.classList.remove('on'));n.classList.add('on');go(n.dataset.view);});
+
+// 新增抽屜
+function openDrawer(){document.getElementById('mask').classList.add('on');document.getElementById('d-create').classList.add('on');mk();check();}
+function closeDrawer(){document.getElementById('mask').classList.remove('on');document.getElementById('d-create').classList.remove('on');}
+function mk(){
+  const sel=id=>document.getElementById(id);
+  const txt=id=>sel(id).options[sel(id).selectedIndex].text;
+  const sg=sel('sg').value.trim();
+  // 科目年級轉短碼：只是示意，實際規則見「命名規則說明」
+  const sub={'國語':'c','國文':'ch','數學':'m','自然':'s','社會':'o','英語':'e'}, num='一二三四五六七八九';
+  let c=''; for(const k in sub) if(sg.startsWith(k)){c=sub[k];const r=sg.slice(k.length);const g=num.indexOf(r[0])+1;c+=(g||'')+(r.includes('上')?'a':r.includes('下')?'b':'');}
+  const code=`${sel('p').value}-${c||'x'}-${sel('t').value}`;
+  sel('code').value=code; sel('cap').textContent='s.example/'+code;
+  sel('ttl').value=`${txt('p')}｜${sg}｜${txt('t')}`;
+}
+function check(){const v=document.getElementById('u').value;
+  document.getElementById('dupAlert').style.display = v.includes('ebook.html#m6a') ? 'block':'none';}
+
+// QR 示意圖：固定亂數畫出的假圖樣，只用來看樣式，不能掃
+function qrSVG(dot,logo,den){
+  let seed=7; const rnd=()=>(seed=(seed*9301+49297)%233280)/233280;
+  const N=29, fill=den==='h'?0.58:0.45, r=dot==='round';
+  let o='<rect width="29" height="29" fill="#fff"/>';
+  const finder=(x,y)=>`<rect x="${x}" y="${y}" width="7" height="7" rx="${r?2:0}" fill="#111"/><rect x="${x+1}" y="${y+1}" width="5" height="5" rx="${r?1.5:0}" fill="#fff"/><rect x="${x+2}" y="${y+2}" width="3" height="3" rx="${r?1:0}" fill="#111"/>`;
+  for(let y=0;y<N;y++)for(let x=0;x<N;x++){
+    const inF=(x<8&&y<8)||(x>N-9&&y<8)||(x<8&&y>N-9), inL=logo&&x>10&&x<18&&y>10&&y<18;
+    if(inF||inL||rnd()>fill) continue;
+    o+= r?`<circle cx="${x+.5}" cy="${y+.5}" r=".45" fill="#111"/>`:`<rect x="${x}" y="${y}" width="1" height="1" fill="#111"/>`;}
+  o+=finder(0,0)+finder(N-7,0)+finder(0,N-7);
+  if(logo) o+='<rect x="11" y="11" width="7" height="7" rx="1.5" fill="#1d6fb8"/><text x="14.5" y="16.1" font-size="3.4" font-weight="900" text-anchor="middle" fill="#fff" font-family="Microsoft JhengHei">示意</text>';
+  return o;}
+function drawQR(){const v=id=>document.getElementById(id).value;
+  document.getElementById('qrsvg').innerHTML=qrSVG(v('qdot'),v('qlogo')==='logo',v('qden'));}
+drawQR(); document.querySelectorAll('.qrmini').forEach(e=>e.innerHTML=qrSVG('round',true,'h'));
+
+// 示意按鈕：沒有實際功能的按鈕，點了跳出提示說明會發生什麼
+const toastEl=document.createElement('div');toastEl.className='toast';document.body.appendChild(toastEl);
+let toastT;function toast(m){toastEl.textContent=m;toastEl.classList.add('on');clearTimeout(toastT);toastT=setTimeout(()=>toastEl.classList.remove('on'),1800);}
+document.addEventListener('click',e=>{
+  const b=e.target.closest('button');if(!b||b.hasAttribute('onclick'))return;
+  const t=(b.title||b.textContent).trim();
+  if(t==='QR'||t==='QR code'){closeDrawer();go('qr');return;}
+  if(t==='建立'){closeDrawer();toast('已建立短網址（示意）');return;}
+  if(b.classList.contains('chip')){toast('這裡會展開「'+t.replace(' ▾','')+'」的篩選選項（示意）');return;}
+  const msg={'複製':'已複製短網址（示意）','複製短網址':'已複製短網址（示意）','複製舊短碼':'已複製舊短碼 ma3-m6a-eb（示意）',
+    '下載':'已下載 QR（示意）','下載 QR（ZIP）':'已下載勾選項目的 QR（示意）','加標籤':'選擇要加上的標籤（示意）',
+    '匯出 Excel':'已匯出 Excel（示意）','移到通用區':'已移到通用區（示意）','確認整理':'已整理：主要短碼保留，其他設為別名（示意）',
+    '編輯':'開啟編輯畫面（示意）','更多':'更多操作：複製、移到通用區、停用（示意）'}[t];
+  toast(msg||'示意稿，此按鈕尚未實作');
+});
+
+// 網址加 #dup、#qr、#stats、#common、#rules、#create 可直接開啟該頁
+(function(){const h=location.hash.slice(1);
+  if(h==='create'){openDrawer();return;}
+  if(h && document.getElementById('v-'+h)){
+    document.querySelectorAll('.nav').forEach(x=>x.classList.toggle('on',x.dataset.view===h));
+    go(h);}
+})();
+</script>
+</body>
+</html>
