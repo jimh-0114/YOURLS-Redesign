@@ -246,9 +246,19 @@ tr:hover td{background:#fafcff}
     <div class="field"><label>3. 短碼與標題（自動產生，可修改）</label>
       <input id="code" class="code" style="margin-bottom:8px"><input id="ttl">
       <div class="hint">標題格式：產品｜科目年級｜用途</div></div>
-    <div class="field"><label>4. 預覽</label>
-      <div class="preview"><div><svg class="qrmini" width="96" height="96" viewBox="0 0 29 29"></svg><div class="qrcap" id="cap"></div></div>
-      <div style="font-size:13px;color:var(--sub);line-height:1.7">建立後可直接：<br>・複製短網址<br>・下載 QR（可加中央 Logo）<br>・加入通用區</div></div></div>
+    <div class="field"><label>4. QR 圖片設定</label>
+      <div class="preview" style="align-items:flex-start">
+        <div><svg id="cqr" width="120" height="120" viewBox="0 0 29 29"></svg><div class="qrcap" id="cap"></div></div>
+        <div style="flex:1">
+          <div class="grid2">
+            <select id="clogo" onchange="drawCQR()" title="中央 Logo"><option value="logo">加 Logo</option><option value="none">不加 Logo</option></select>
+            <select id="cdot" onchange="drawCQR()" title="點的樣式"><option value="round">圓點</option><option value="square">方點</option></select>
+            <select id="cden" onchange="drawCQR()" title="密度"><option value="h">密度：高</option><option value="m">密度：標準</option></select>
+            <select title="格式"><option>PNG</option><option>SVG（印刷）</option></select>
+          </div>
+          <div class="hint">建立時 QR 一起照這個設定產生，建立後可直接下載。</div>
+        </div>
+      </div></div>
   </div>
   <div class="df"><button class="btn" onclick="closeDrawer()">取消</button><button class="btn primary">建立</button></div>
 </aside>
@@ -327,7 +337,9 @@ function qrSVG(dot,logo,den){
   return o;}
 function drawQR(){const v=id=>document.getElementById(id).value;
   document.getElementById('qrsvg').innerHTML=qrSVG(v('qdot'),v('qlogo')==='logo',v('qden'));}
-drawQR(); document.querySelectorAll('.qrmini').forEach(e=>e.innerHTML=qrSVG('round',true,'h'));
+function drawCQR(){const v=id=>document.getElementById(id).value;
+  document.getElementById('cqr').innerHTML=qrSVG(v('cdot'),v('clogo')==='logo',v('cden'));}
+drawQR(); drawCQR();
 
 // 示意按鈕：沒有實際功能的按鈕，點了跳出提示說明會發生什麼
 const toastEl=document.createElement('div');toastEl.className='toast';document.body.appendChild(toastEl);
@@ -336,7 +348,7 @@ document.addEventListener('click',e=>{
   const b=e.target.closest('button');if(!b||b.hasAttribute('onclick'))return;
   const t=(b.title||b.textContent).trim();
   if(t==='QR'||t==='QR code'){closeDrawer();go('qr');return;}
-  if(t==='建立'){closeDrawer();toast('已建立短網址（示意）');return;}
+  if(t==='建立'){closeDrawer();toast('已建立短網址，QR 已照設定產生（示意）');return;}
   if(b.classList.contains('chip')){toast('這裡會展開「'+t.replace(' ▾','')+'」的篩選選項（示意）');return;}
   const msg={'複製':'已複製短網址（示意）','複製短網址':'已複製短網址（示意）','複製舊短碼':'已複製舊短碼 ma3-m6a-eb（示意）',
     '下載':'已下載 QR（示意）','下載 QR（ZIP）':'已下載勾選項目的 QR（示意）','加標籤':'選擇要加上的標籤（示意）',
